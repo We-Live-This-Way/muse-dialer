@@ -1,0 +1,93 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="vertical"
+    android:background="#fff7e8">
+
+    <TextView
+        android:id="@+id/tvQueueTitle"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:padding="16dp"
+        android:text="Queue is empty."
+        android:textColor="#0d1f3c"
+        android:textSize="18sp"
+        android:textStyle="bold" />
+
+    <EditText
+        android:id="@+id/etSearch"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginLeft="16dp"
+        android:layout_marginRight="16dp"
+        android:layout_marginBottom="8dp"
+        android:background="#ffffff"
+        android:hint="Search business or phone…"
+        android:inputType="text"
+        android:padding="12dp"
+        android:textColor="#0d1f3c"
+        android:textSize="16sp" />
+
+    <Button
+        android:id="@+id/btnSort"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginLeft="16dp"
+        android:layout_marginRight="16dp"
+        android:layout_marginBottom="8dp"
+        android:minHeight="48dp"
+        android:backgroundTint="#0d1f3c"
+        android:text="Sort: Dialer order"
+        android:textSize="15sp" />
+
+    <ListView
+        android:id="@+id/lvQueue"
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_weight="1"
+        android:divider="#d8cfc0"
+        android:dividerHeight="1dp" />
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_margin="16dp"
+        android:orientation="horizontal">
+
+        <Button
+            android:id="@+id/btnLoadMore"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:layout_marginRight="8dp"
+            android:minHeight="56dp"
+            android:backgroundTint="#0fb5ae"
+            android:text="Load more"
+            android:textSize="16sp" />
+
+        <Button
+            android:id="@+id/btnLoadAll"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:layout_marginLeft="8dp"
+            android:minHeight="56dp"
+            android:backgroundTint="#0d1f3c"
+            android:text="Load all"
+            android:textSize="16sp" />
+
+    </LinearLayout>
+
+    <TextView
+        android:id="@+id/tvQueueStatus"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginLeft="16dp"
+        android:layout_marginRight="16dp"
+        android:layout_marginBottom="12dp"
+        android:text="Tap a lead to jump to it."
+        android:textColor="#1B6B1B"
+        android:textSize="14sp" />
+
+</LinearLayout>

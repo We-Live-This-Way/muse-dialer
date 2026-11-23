@@ -1,0 +1,33 @@
+plugins {
+    id 'com.android.application'
+}
+
+android {
+    namespace 'com.welivethisway.dialer'
+    compileSdk 34
+
+    defaultConfig {
+        applicationId 'com.welivethisway.dialer'
+        minSdk 24
+        targetSdk 34
+        versionCode 10
+        versionName '1.9'
+    }
+
+    buildTypes {
+        release {
+            minifyEnabled false
+        }
+    }
+
+    compileOptions {
+        sourceCompatibility JavaVersion.VERSION_17
+        targetCompatibility JavaVersion.VERSION_17
+    }
+}
+
+dependencies {
+    // No third-party libraries. Network uses HttpURLConnection and
+    // JSON uses android's built-in org.json, so the build has no
+    // extra downloads beyond the Android Gradle Plugin itself.
+}

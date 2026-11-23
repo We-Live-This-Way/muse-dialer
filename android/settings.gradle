@@ -1,0 +1,2 @@
+rootProject.name = "welivethisway-dialer"
+include ':app'

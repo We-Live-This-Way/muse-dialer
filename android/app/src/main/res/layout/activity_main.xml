@@ -1,0 +1,399 @@
+<?xml version="1.0" encoding="utf-8"?>
+<ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="#fff7e8">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:background="#fff7e8">
+
+        <ImageView
+            android:layout_width="match_parent"
+            android:layout_height="150dp"
+            android:src="@drawable/wltw_banner"
+            android:scaleType="centerCrop"
+            android:contentDescription="Ocean Drive at sunset"
+            android:background="#0d1f3c" />
+
+        <ImageView
+            android:layout_width="match_parent"
+            android:layout_height="64dp"
+            android:src="@drawable/wltw_logo"
+            android:scaleType="fitCenter"
+            android:contentDescription="We Live This Way — A South Florida Courier Co"
+            android:background="#0d1f3c" />
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:padding="16dp">
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="WLTW Dialer"
+            android:textColor="#0d1f3c"
+            android:textSize="24sp"
+            android:textStyle="bold" />
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="4dp"
+            android:text="Call through your leads one by one. Tap CALL to open the phone dialer, then pick what happened."
+            android:textColor="#0d1f3c"
+            android:textSize="14sp" />
+
+        <TextView
+            android:id="@+id/tvProgress"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="14dp"
+            android:text="Called: 0  ·  Left: 0"
+            android:textColor="#0d1f3c"
+            android:textSize="18sp"
+            android:textStyle="bold" />
+
+        <TextView
+            android:id="@+id/tvQueueInfo"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="2dp"
+            android:text="Queue is empty."
+            android:textColor="#0d1f3c"
+            android:textSize="14sp" />
+
+        <LinearLayout
+            android:id="@+id/layoutLead"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:layout_marginTop="14dp"
+            android:visibility="gone">
+
+            <TextView
+                android:id="@+id/tvBusiness"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:textColor="#0d1f3c"
+                android:textSize="22sp"
+                android:textStyle="bold" />
+
+            <TextView
+                android:id="@+id/tvPhone"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="4dp"
+                android:textColor="#0d1f3c"
+                android:textSize="26sp"
+                android:textStyle="bold" />
+
+            <TextView
+                android:id="@+id/tvContact"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="4dp"
+                android:textColor="#0d1f3c"
+                android:textSize="16sp" />
+
+            <TextView
+                android:id="@+id/tvNotes"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="6dp"
+                android:textColor="#0d1f3c"
+                android:textSize="14sp" />
+
+            <TextView
+                android:id="@+id/tvSource"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="6dp"
+                android:textSize="13sp" />
+
+            <TextView
+                android:id="@+id/tvSavedOutcome"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="6dp"
+                android:textColor="#1B6B1B"
+                android:textSize="14sp"
+                android:visibility="gone" />
+
+            <TextView
+                android:id="@+id/tvPrevCalls"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="6dp"
+                android:textColor="#0d1f3c"
+                android:textSize="14sp"
+                android:visibility="gone" />
+
+        </LinearLayout>
+
+        <Button
+            android:id="@+id/btnCall"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="14dp"
+            android:minHeight="72dp"
+            android:backgroundTint="#0fb5ae"
+            android:text="CALL"
+            android:textSize="22sp"
+            android:visibility="gone" />
+
+        <Button
+            android:id="@+id/btnNotQualified"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="8dp"
+            android:minHeight="56dp"
+            android:text="Not qualified"
+            android:textSize="18sp"
+            android:visibility="gone" />
+
+        <Button
+            android:id="@+id/btnShiftCampaign"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="8dp"
+            android:minHeight="56dp"
+            android:text="Shift campaign"
+            android:textSize="18sp"
+            android:visibility="gone" />
+
+        <LinearLayout
+            android:id="@+id/layoutDisposition"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:layout_marginTop="14dp"
+            android:visibility="gone">
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="How did it go?"
+                android:textColor="#0d1f3c"
+                android:textSize="18sp"
+                android:textStyle="bold" />
+
+            <EditText
+                android:id="@+id/etNote"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="8dp"
+                android:background="#ffffff"
+                android:hint="Add a note (optional)"
+                android:inputType="textCapSentences|textMultiLine"
+                android:maxLines="4"
+                android:minLines="2"
+                android:padding="12dp"
+                android:textColor="#0d1f3c"
+                android:textSize="16sp" />
+
+            <Button
+                android:id="@+id/btnDisp0"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="8dp"
+                android:minHeight="56dp"
+                android:text="Interested"
+                android:textSize="18sp" />
+            <Button
+                android:id="@+id/btnDisp1"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="8dp"
+                android:minHeight="56dp"
+                android:text="Not interested"
+                android:textSize="18sp" />
+            <Button
+                android:id="@+id/btnDisp2"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="8dp"
+                android:minHeight="56dp"
+                android:text="No answer"
+                android:textSize="18sp" />
+            <Button
+                android:id="@+id/btnDisp3"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="8dp"
+                android:minHeight="56dp"
+                android:text="Voicemail"
+                android:textSize="18sp" />
+            <Button
+                android:id="@+id/btnDisp4"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="8dp"
+                android:minHeight="56dp"
+                android:text="Callback"
+                android:textSize="18sp" />
+            <Button
+                android:id="@+id/btnDisp5"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="8dp"
+                android:minHeight="56dp"
+                android:text="Wrong number"
+                android:textSize="18sp" />
+            <Button
+                android:id="@+id/btnDisp6"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="8dp"
+                android:minHeight="56dp"
+                android:text="Do not contact"
+                android:textSize="18sp" />
+            <Button
+                android:id="@+id/btnDisp7"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="8dp"
+                android:minHeight="56dp"
+                android:text="Not qualified"
+                android:textSize="18sp" />
+            <Button
+                android:id="@+id/btnDisp8"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="8dp"
+                android:minHeight="56dp"
+                android:text="Shift campaign"
+                android:textSize="18sp" />
+
+            <TextView
+                android:id="@+id/tvDispError"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="10dp"
+                android:textColor="#B00020"
+                android:textSize="14sp"
+                android:visibility="gone" />
+
+            <Button
+                android:id="@+id/btnRetry"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="8dp"
+                android:minHeight="56dp"
+                android:backgroundTint="#0fb5ae"
+                android:text="Retry saving"
+                android:textSize="18sp"
+                android:visibility="gone" />
+
+            <Button
+                android:id="@+id/btnDidntCall"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="8dp"
+                android:minHeight="48dp"
+                android:text="Didn’t call — go back"
+                android:textSize="16sp" />
+
+        </LinearLayout>
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="18dp"
+            android:orientation="horizontal">
+            <Button
+                android:id="@+id/btnLoad"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:minHeight="56dp"
+                android:backgroundTint="#0fb5ae"
+                android:text="Load queue"
+                android:textSize="16sp" />
+            <Button
+                android:id="@+id/btnImport"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:minHeight="56dp"
+                android:text="Import CSV"
+                android:textSize="16sp" />
+        </LinearLayout>
+
+        <Button
+            android:id="@+id/btnQueue"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="8dp"
+            android:minHeight="56dp"
+            android:text="View queue"
+            android:textSize="16sp" />
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="8dp"
+            android:orientation="horizontal">
+            <Button
+                android:id="@+id/btnPrev"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:minHeight="56dp"
+                android:text="Previous"
+                android:textSize="16sp" />
+            <Button
+                android:id="@+id/btnSkip"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:minHeight="56dp"
+                android:text="Skip"
+                android:textSize="16sp" />
+            <Button
+                android:id="@+id/btnSettings"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:minHeight="56dp"
+                android:text="Settings"
+                android:textSize="16sp" />
+        </LinearLayout>
+
+        <Button
+            android:id="@+id/btnClearQueue"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="8dp"
+            android:text="Clear queue" />
+
+        <TextView
+            android:id="@+id/tvStatus"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="12dp"
+            android:textSize="14sp" />
+
+        <TextView
+            android:id="@+id/tvUnsyncedTitle"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="16dp"
+            android:textColor="#B00020"
+            android:textSize="15sp"
+            android:textStyle="bold"
+            android:visibility="gone" />
+
+        <LinearLayout
+            android:id="@+id/layoutUnsynced"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical" />
+
+    </LinearLayout>
+    </LinearLayout>
+</ScrollView>
