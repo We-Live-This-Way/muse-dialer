@@ -1,8 +1,8 @@
 # WLTW Dialer
 
-WLTW Dialer is an Android call-queue for sales reps. It works with the self-hosted [muse-crm](https://github.com/We-Live-This-Way/muse-crm) lead CRM, which can run alongside an OpenMausBot bot server where AI sales bots find and import leads.
+WLTW Dialer is an Android call-queue for sales reps. It works with the self-hosted [muse-crm](https://github.com/We-Live-This-Way/muse-crm) lead CRM. AI sales bots on OpenMausBot or Rakazo — or any agent that can make an HTTP call or use MCP — can find and import leads into that CRM with their own API key. You then work that list from the phone: tap through the queue, place each call yourself, log what happened, and fix a lead's business or contact name when something is wrong.
 
-You tap through the queue on your phone, place each call yourself, log what happened, and fix a lead's business or contact name when something is wrong. The CRM stays up to date as you go. The app never places a call on its own: it opens the system dialer with the number filled in, and you tap Call.
+The CRM stays up to date as you go. The app never places a call on its own: it opens the system dialer with the number filled in, and you tap Call.
 
 This tree is **v1.10.4** (`versionName` 1.10.4, `versionCode` 15).
 
@@ -10,7 +10,7 @@ This tree is **v1.10.4** (`versionName` 1.10.4, `versionCode` 15).
 
 - An Android phone running Android 7.0 or newer
 - A running [muse-crm](https://github.com/We-Live-This-Way/muse-crm) server, and an API key created in that CRM under Settings → Bot API keys
-- Optional: an OpenMausBot server whose sales bots import leads into the same CRM
+- Optional: AI sales bots on OpenMausBot or Rakazo (or any agent that can call the CRM over HTTP or use the CRM MCP tool) that import leads with their own API key
 
 ## Install
 
