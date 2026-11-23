@@ -10,8 +10,8 @@ android {
         applicationId 'com.welivethisway.dialer'
         minSdk 24
         targetSdk 34
-        versionCode 10
-        versionName '1.9'
+        versionCode 15
+        versionName '1.10.4'
     }
 
     buildTypes {

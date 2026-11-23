@@ -74,6 +74,16 @@ import java.util.concurrent.Executors;
  * so the next picker offers it (CRM leads only — a CSV-only
  * shift is saved on the phone, not in the CRM).
  *
+ * "Edit name" sits on the lead card: the operator calls a lead whose
+ * name he does not know, learns it on the call, and fixes it
+ * right there. The dialog is pre-filled with the current
+ * business and contact names (blank when unknown); Save posts
+ * only the changed fields to POST /api/v1/updateLead. On
+ * failure the new name is still kept on the phone and marked
+ * clearly ("name edit saved on this phone only"), never
+ * dropped — the same rule as dispositions. Editing never
+ * advances the queue and never touches a disposition.
+ *
  * Settings (CRM address, API key, campaign, status) live in
  * SharedPreferences on the phone. No key is baked into the app.
  */
@@ -164,11 +174,11 @@ public class MainActivity extends Activity {
     private final Map<Long, String> callHistoryCache = new HashMap<>();
     private long loadingHistoryFor = -1;
 
-    private TextView tvProgress, tvQueueInfo, tvBusiness, tvPhone, tvContact,
+    private TextView tvProgress, tvQueueInfo, tvBusiness, tvPhone, tvAddress, tvContact,
             tvNotes, tvSource, tvSavedOutcome, tvPrevCalls, tvStatus, tvDispError, tvUnsyncedTitle;
     private EditText etNote;
     private LinearLayout layoutLead, layoutDisposition, layoutUnsynced;
-    private Button btnCall, btnRetry, btnNotQualified, btnShiftCampaign;
+    private Button btnCall, btnRetry, btnNotQualified, btnShiftCampaign, btnEditLead;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -180,6 +190,7 @@ public class MainActivity extends Activity {
         tvQueueInfo = findViewById(R.id.tvQueueInfo);
         tvBusiness = findViewById(R.id.tvBusiness);
         tvPhone = findViewById(R.id.tvPhone);
+        tvAddress = findViewById(R.id.tvAddress);
         tvContact = findViewById(R.id.tvContact);
         tvNotes = findViewById(R.id.tvNotes);
         tvSource = findViewById(R.id.tvSource);
@@ -196,12 +207,17 @@ public class MainActivity extends Activity {
         btnRetry = findViewById(R.id.btnRetry);
         btnNotQualified = findViewById(R.id.btnNotQualified);
         btnShiftCampaign = findViewById(R.id.btnShiftCampaign);
+        btnEditLead = findViewById(R.id.btnEditLead);
 
         for (int i = 0; i < OUTCOME_BUTTON_IDS.length; i++) {
             final String outcome = OUTCOME_VALUES[i];
             findViewById(OUTCOME_BUTTON_IDS[i]).setOnClickListener(v -> onDisposition(outcome));
         }
         btnCall.setOnClickListener(v -> callCurrent());
+        // "Edit name": the operator just called a lead and learned who
+        // they are — fix the business / contact name right on the
+        // card. Never advances the queue, never posts a disposition.
+        btnEditLead.setOnClickListener(v -> openEditNameDialog());
         // Pre-call "Not qualified": remove a lead that is clearly not
         // a fit (e.g. a restaurant) without calling it first, and
         // without misusing "Do not contact". Same post-and-advance
@@ -669,6 +685,178 @@ public class MainActivity extends Activity {
         }
     }
 
+    // ---------- edit name ----------
+
+    /** "Edit name": the operator just called a lead and learned who they
+     *  are. The dialog is pre-filled with the lead's current
+     *  business and contact names (blank when unknown) — he fixes
+     *  what he learned and taps Save. Only fields that actually
+     *  changed are posted, so an untouched save does nothing.
+     *  A CSV-only lead has no CRM record: the edit is kept on the
+     *  phone, like every other CSV-only change. A CRM lead posts
+     *  to /api/v1/updateLead; on failure the new name is still
+     *  kept on the phone and marked clearly (see
+     *  saveUnsyncedNameEdit), never dropped — the same rule as
+     *  dispositions. Editing never advances the queue and never
+     *  touches a disposition. */
+    private void openEditNameDialog() {
+        Lead lead = currentLead();
+        if (lead == null) return;
+        LinearLayout box = new LinearLayout(this);
+        box.setOrientation(LinearLayout.VERTICAL);
+        int pad = (int) (16 * getResources().getDisplayMetrics().density);
+        box.setPadding(pad, pad, pad, pad);
+        final EditText etBusiness = new EditText(this);
+        etBusiness.setHint("Business name");
+        etBusiness.setSingleLine(true);
+        etBusiness.setText(lead.business == null ? "" : lead.business);
+        final EditText etContact = new EditText(this);
+        etContact.setHint("Contact name");
+        etContact.setSingleLine(true);
+        etContact.setText(lead.contact == null ? "" : lead.contact);
+        box.addView(etBusiness);
+        box.addView(etContact);
+        new AlertDialog.Builder(this)
+                .setTitle("Edit name")
+                .setView(box)
+                .setPositiveButton("Save", (dialog, which) -> {
+                    String newBusiness = etBusiness.getText().toString().trim();
+                    String newContact = etContact.getText().toString().trim();
+                    String oldBusiness = lead.business == null ? "" : lead.business.trim();
+                    String oldContact = lead.contact == null ? "" : lead.contact.trim();
+                    boolean businessChanged = !newBusiness.equals(oldBusiness);
+                    boolean contactChanged = !newContact.equals(oldContact);
+                    if (!businessChanged && !contactChanged) {
+                        status("No changes to save.", true);
+                        return;
+                    }
+                    saveNameEdit(lead,
+                            businessChanged ? newBusiness : null,
+                            contactChanged ? newContact : null);
+                })
+                .setNegativeButton("Cancel", null)
+                .show();
+    }
+
+    /** Apply a name edit. business/contact are null when that field
+     *  did not change. A CSV-only lead is updated on the phone
+     *  only. A CRM lead posts to updateLead: on HTTP 200 the card
+     *  updates and any stale phone-only edit for this lead is
+     *  cleared; on failure the new name still lands on the card
+     *  and in the saved queue, plus a phone-only marker, so the
+     *  edit is never lost and the operator can see it did not reach the
+     *  CRM. This never advances the queue or touches a disposition. */
+    private void saveNameEdit(Lead lead, String newBusiness, String newContact) {
+        if (lead.crmId == null) {
+            if (newBusiness != null) lead.business = newBusiness;
+            if (newContact != null) lead.contact = newContact;
+            saveSession();
+            render();
+            status("Saved on this phone (CSV lead — not in the CRM).", true);
+            return;
+        }
+        CrmApi api = apiOrNullSilent();
+        if (api == null) {
+            // No key / no CRM address: keep it on the phone and mark
+            // it, exactly like a failed post below.
+            applyLocalNameEdit(lead, newBusiness, newContact);
+            status("No CRM key in Settings — name saved on this phone only, not in the CRM.", false);
+            return;
+        }
+        final long id = lead.crmId;
+        bg.execute(() -> {
+            try {
+                api.updateLead(id, newBusiness, newContact);
+                runOnUiThread(() -> {
+                    if (newBusiness != null) lead.business = newBusiness;
+                    if (newContact != null) lead.contact = newContact;
+                    clearUnsyncedNameEdits(lead);
+                    saveSession();
+                    render();
+                    status("Saved in the CRM: "
+                            + (lead.business == null || lead.business.isEmpty()
+                                    ? lead.phone : lead.business), true);
+                });
+            } catch (CrmApi.ApiException e) {
+                runOnUiThread(() -> {
+                    applyLocalNameEdit(lead, newBusiness, newContact);
+                    status("Could not reach the CRM — name saved on this phone only, not in the CRM. ("
+                            + e.getMessage() + ")", false);
+                });
+            }
+        });
+    }
+
+    /** Keep a name edit on the phone after the CRM post failed (or
+     *  there was no key): update the card and the saved queue, and
+     *  add a phone-only marker so the operator can see it never reached
+     *  the CRM. */
+    private void applyLocalNameEdit(Lead lead, String newBusiness, String newContact) {
+        if (newBusiness != null) lead.business = newBusiness;
+        if (newContact != null) lead.contact = newContact;
+        saveUnsyncedNameEdit(lead);
+        saveSession();
+        render();
+    }
+
+    /** A phone-only name edit, listed with the other unsynced items
+     *  ("Saved on this phone only — not in the CRM"). */
+    private void saveUnsyncedNameEdit(Lead lead) {
+        try {
+            JSONArray arr = new JSONArray(prefs.getString("unsynced", "[]"));
+            JSONObject o = new JSONObject();
+            o.put("business", lead.business);
+            o.put("phone", lead.phone);
+            o.put("contact", lead.contact);
+            o.put("outcome", "name_edit");
+            o.put("outcome_label", "Name edit — not in the CRM");
+            o.put("time", new SimpleDateFormat("yyyy-MM-dd HH:mm", Locale.US).format(new Date()));
+            arr.put(o);
+            prefs.edit().putString("unsynced", arr.toString()).apply();
+        } catch (Exception ignored) {}
+        renderUnsynced();
+    }
+
+    /** Does this lead have a phone-only name edit waiting? Used to
+     *  mark the lead card's source line. */
+    private boolean hasUnsyncedNameEdit(Lead lead) {
+        try {
+            JSONArray arr = new JSONArray(prefs.getString("unsynced", "[]"));
+            String norm = Lead.normalizePhone(lead.phone);
+            for (int i = 0; i < arr.length(); i++) {
+                JSONObject o = arr.optJSONObject(i);
+                if (o == null) continue;
+                if ("name_edit".equals(o.optString("outcome", ""))
+                        && Lead.normalizePhone(o.optString("phone", "")).equals(norm)) {
+                    return true;
+                }
+            }
+        } catch (Exception ignored) {}
+        return false;
+    }
+
+    /** Drop the phone-only name-edit markers for this lead — used
+     *  after a successful CRM save, so a stale marker never claims
+     *  the name is still unsynced. */
+    private void clearUnsyncedNameEdits(Lead lead) {
+        try {
+            JSONArray arr = new JSONArray(prefs.getString("unsynced", "[]"));
+            String norm = Lead.normalizePhone(lead.phone);
+            JSONArray kept = new JSONArray();
+            for (int i = 0; i < arr.length(); i++) {
+                JSONObject o = arr.optJSONObject(i);
+                if (o == null) continue;
+                if ("name_edit".equals(o.optString("outcome", ""))
+                        && Lead.normalizePhone(o.optString("phone", "")).equals(norm)) {
+                    continue;
+                }
+                kept.put(o);
+            }
+            prefs.edit().putString("unsynced", kept.toString()).apply();
+        } catch (Exception ignored) {}
+        renderUnsynced();
+    }
+
     private static List<String> fallbackCampaigns() {
         return new ArrayList<>(Arrays.asList(FALLBACK_CAMPAIGNS));
     }
@@ -911,6 +1099,10 @@ public class MainActivity extends Activity {
         tvBusiness.setText(lead.business == null || lead.business.isEmpty()
                 ? "(no business name)" : lead.business);
         tvPhone.setText(lead.phone);
+        tvAddress.setText(lead.address == null || lead.address.isEmpty()
+                ? "" : lead.address);
+        tvAddress.setVisibility(lead.address == null || lead.address.isEmpty()
+                ? View.GONE : View.VISIBLE);
         tvContact.setText(lead.contact == null || lead.contact.isEmpty()
                 ? "" : "Contact: " + lead.contact);
         tvContact.setVisibility(lead.contact == null || lead.contact.isEmpty()
@@ -920,9 +1112,18 @@ public class MainActivity extends Activity {
         tvNotes.setVisibility(lead.notes == null || lead.notes.isEmpty()
                 ? View.GONE : View.VISIBLE);
         if (lead.crmId != null) {
-            tvSource.setText("From the CRM" + (lead.campaign != null && !lead.campaign.isEmpty()
-                    ? " · " + lead.campaign : ""));
-            tvSource.setTextColor(Color.DKGRAY);
+            String src = "From the CRM" + (lead.campaign != null && !lead.campaign.isEmpty()
+                    ? " · " + lead.campaign : "");
+            if (hasUnsyncedNameEdit(lead)) {
+                // The name on this card was edited on the phone and
+                // never reached the CRM — say so on the card itself,
+                // not just in the unsynced list at the bottom.
+                tvSource.setText(src + " · name edit saved on this phone only");
+                tvSource.setTextColor(RED);
+            } else {
+                tvSource.setText(src);
+                tvSource.setTextColor(Color.DKGRAY);
+            }
         } else {
             tvSource.setText("CSV only — not in the CRM. The outcome will be saved on this phone, not synced.");
             tvSource.setTextColor(RED);

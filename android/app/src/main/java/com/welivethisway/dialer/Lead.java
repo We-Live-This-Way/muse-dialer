@@ -13,6 +13,7 @@ public class Lead {
     public String business = "";
     public String phone = "";
     public String contact = ""; // contact name (CRM "name")
+    public String address = "";
     public String notes = "";
     public String campaign = "";
     public String source = "crm"; // "crm" or "csv"
@@ -32,6 +33,7 @@ public class Lead {
         l.business = o.optString("business", "");
         l.phone = o.optString("phone", "");
         l.contact = o.optString("name", "");
+        l.address = o.optString("address", "");
         l.notes = o.optString("notes", "");
         l.campaign = o.optString("campaign", "");
         return l;
@@ -44,6 +46,7 @@ public class Lead {
             o.put("business", business);
             o.put("phone", phone);
             o.put("name", contact);
+            o.put("address", address);
             o.put("notes", notes);
             o.put("campaign", campaign);
             o.put("source", source);
@@ -58,6 +61,7 @@ public class Lead {
         l.business = o.optString("business", "");
         l.phone = o.optString("phone", "");
         l.contact = o.optString("name", "");
+        l.address = o.optString("address", "");
         l.notes = o.optString("notes", "");
         l.campaign = o.optString("campaign", "");
         l.source = o.optString("source", "crm");
@@ -67,7 +71,7 @@ public class Lead {
     }
 
     /** Digits only, with a leading 1 stripped — so "(561) 406-0480",
-     *  "5555550100" and "+1 555-555-0100" all match each other. */
+     *  "5614060480" and "+1 561-406-0480" all match each other. */
     public static String normalizePhone(String raw) {
         if (raw == null) return "";
         StringBuilder digits = new StringBuilder();

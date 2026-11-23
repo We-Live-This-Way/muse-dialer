@@ -24,6 +24,9 @@ import java.util.List;
  *   GET  /api/v1/listCalls?lead_id=   (call history, newest first)
  *   GET  /api/v1/campaigns           (distinct campaign values in leads)
  *   POST /api/v1/recordCall  {"lead_id": <id>, "outcome": "<value>"}
+ *   POST /api/v1/updateLead  {"lead_id": <id>, "business": "<name>",
+ *                             "name": "<contact>"} — only the fields
+ *                             present are changed (Edit name button).
  *   Shift campaign: same recordCall with outcome "shift_campaign"
  *   and "to_campaign": "<picked campaign>" — the CRM moves the
  *   lead to that campaign (its shift_campaign handling). The
@@ -184,6 +187,26 @@ public class CrmApi {
             throw e;
         } catch (Exception e) {
             throw new ApiException(-1, "Could not save the outcome: " + e.getMessage());
+        }
+    }
+
+    /** POST a name edit: business and/or contact name for a CRM
+     *  lead. Only the non-null fields are sent — the CRM changes
+     *  just those. Returns only on HTTP 200; anything else throws.
+     *  A 404 from a CRM that predates updateLead is the caller's
+     *  signal the endpoint is not live yet — never an error about
+     *  the lead to show the operator. */
+    public void updateLead(long leadId, String business, String contact) throws ApiException {
+        try {
+            JSONObject payload = new JSONObject();
+            payload.put("lead_id", leadId);
+            if (business != null) payload.put("business", business.trim());
+            if (contact != null) payload.put("name", contact.trim());
+            post("/api/v1/updateLead", payload.toString());
+        } catch (ApiException e) {
+            throw e;
+        } catch (Exception e) {
+            throw new ApiException(-1, "Could not save the name: " + e.getMessage());
         }
     }
 

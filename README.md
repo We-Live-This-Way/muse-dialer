@@ -4,7 +4,7 @@ Assisted calling against the Lead Outreach CRM: the app opens the phone dialer w
 
 Built by Muse-proto.
 
-This tree is **v1.9** (`versionName` 1.9, `versionCode` 10). No APK is included; build from source.
+This tree is **v1.10.4** (`versionName` 1.10.4, `versionCode` 15). No APK is included; build from source.
 
 ## Build
 
@@ -120,7 +120,11 @@ same order the dialer steps through it. Each row shows the business,
 the phone, and the outcome already saved for leads you have
 dispositioned. The list opens on the lead you are on, highlighted.
 Type in the search box to filter by business name or phone — typing
-"pharmacy" shows only the pharmacies. Tap a row to jump to that
+"pharmacy" shows only the pharmacies. **A campaign picker at the top
+of the queue (v1.10.4) narrows the list to one campaign** — pick
+"delivery" and only delivery leads show, no scrolling through the
+other campaigns to reach them. "All campaigns" shows everything.
+The pick is remembered. Tap a row to jump to that
 lead (even one already dispositioned — calling it again and picking
 a new outcome saves a new record, nothing is re-posted just by
 jumping). **Load more** at the bottom fetches the next 100 leads
@@ -195,7 +199,7 @@ Base URL: the CRM address in Settings (default
 
 - **Load queue** — `GET /api/v1/listLeads?status=new&campaign=delivery&limit=100`
   (status/campaign from Settings). Answers `{"leads": [...]}` with
-  `id`, `business`, `phone`, `name`, `notes`, `campaign`, `status`.
+  `id`, `business`, `phone`, `name`, `address`, `notes`, `campaign`, `status`.
   Any non-200 is shown as a plain error message (401 = wrong key).
 - **Previous calls** — `GET /api/v1/listCalls?lead_id=<id>`, newest
   first, each with `outcome`, `note`, `called_at`, `actor`. The app
@@ -213,3 +217,9 @@ Base URL: the CRM address in Settings (default
   from this list (plus "restaurant" if absent, minus the lead's
   current campaign); if the call fails or the endpoint is not live
   yet, the picker falls back to `["delivery", "restaurant"]`.
+- **Edit name** — `POST /api/v1/updateLead`, JSON body
+  `{"lead_id": <id>, "business": "<name>", "name": "<contact>"}`.
+  Only the fields present are changed. The "Edit name" button on
+  the lead card posts only the fields the operator actually changed. On
+  any failure the new name is kept on the phone and marked
+  ("name edit saved on this phone only"), never dropped.

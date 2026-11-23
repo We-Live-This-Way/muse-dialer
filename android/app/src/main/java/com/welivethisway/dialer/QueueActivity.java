@@ -10,10 +10,13 @@ import android.text.TextWatcher;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
+import android.widget.AdapterView;
+import android.widget.ArrayAdapter;
 import android.widget.BaseAdapter;
 import android.widget.Button;
 import android.widget.EditText;
 import android.widget.ListView;
+import android.widget.Spinner;
 import android.widget.TextView;
 
 import org.json.JSONArray;
@@ -56,6 +59,14 @@ import java.util.concurrent.Executors;
  * never re-fetches and never changes the dialer's stepping order.
  * Each row's subtitle shows the lead's campaign.
  *
+ * A campaign picker above the search box narrows the list to one
+ * campaign ("All campaigns" shows everything). It is built from
+ * GET /api/v1/campaigns, falling back to the campaigns already in
+ * the loaded queue, so it works even if the CRM cannot be reached.
+ * The pick persists across opens. Filtering only changes what is
+ * shown here — it never re-fetches and never changes the dialer's
+ * stepping order.
+ *
  * The queue lives in the same SharedPreferences session the main
  * screen uses, so this screen always sees the same list — and
  * "Load more" writes the appended leads back there too.
@@ -75,6 +86,15 @@ public class QueueActivity extends Activity {
     private static final String SORT_DIALER = "dialer";
     private static final String SORT_CAMPAIGN = "campaign";
 
+    // Campaign filter for the queue view only. "" means "All
+    // campaigns". Picking one shows only that campaign's leads in
+    // this list, so the operator can jump straight to delivery (or
+    // reminder, or any campaign) instead of scrolling through
+    // 3,000 rows to reach its group. Like the sort, it only
+    // changes what is shown here — it never re-fetches and never
+    // changes the dialer's stepping order.
+    private static final String PREF_CAMPAIGN_FILTER = "queue_campaign_filter";
+
     private SharedPreferences prefs;
     private final ExecutorService bg = Executors.newSingleThreadExecutor();
 
@@ -87,6 +107,15 @@ public class QueueActivity extends Activity {
     private final List<Integer> shown = new ArrayList<>();
     private String query = "";
     private String sortMode = SORT_DIALER;
+    private String campaignFilter = "";
+    private Spinner spCampaign;
+    private ArrayAdapter<String> campaignAdapter;
+    private final List<String> campaignOptions = new ArrayList<>();
+    /** False until the campaign list has loaded and the saved
+     *  selection is restored — the Spinner fires a selection
+     *  event when its adapter is first set, and that event must
+     *  not clear a saved filter before the real options exist. */
+    private boolean campaignSpinnerReady = false;
 
     private TextView tvTitle, tvStatus;
     private EditText etSearch;
@@ -124,6 +153,31 @@ public class QueueActivity extends Activity {
         });
 
         restoreQueue();
+
+        // Campaign picker: "All campaigns" plus every campaign the
+        // CRM knows. Picking one filters this list to just that
+        // campaign's leads. The choice persists across opens.
+        campaignFilter = prefs.getString(PREF_CAMPAIGN_FILTER, "");
+        if (campaignFilter == null) campaignFilter = "";
+        spCampaign = findViewById(R.id.spCampaign);
+        campaignOptions.add("All campaigns");
+        campaignAdapter = new ArrayAdapter<>(this,
+                android.R.layout.simple_spinner_item, campaignOptions);
+        campaignAdapter.setDropDownViewResource(
+                android.R.layout.simple_spinner_dropdown_item);
+        spCampaign.setAdapter(campaignAdapter);
+        spCampaign.setOnItemSelectedListener(new AdapterView.OnItemSelectedListener() {
+            @Override public void onItemSelected(AdapterView<?> parent, View view, int position, long id) {
+                if (!campaignSpinnerReady) return;
+                String picked = position == 0 ? "" : campaignOptions.get(position);
+                campaignFilter = picked;
+                prefs.edit().putString(PREF_CAMPAIGN_FILTER, campaignFilter).apply();
+                applyFilter(false);
+            }
+            @Override public void onNothingSelected(AdapterView<?> parent) {}
+        });
+        loadCampaignOptions();
+
         adapter = new QueueAdapter();
         lvQueue.setAdapter(adapter);
         applyFilter(true);
@@ -190,6 +244,11 @@ public class QueueActivity extends Activity {
         String qDigits = Lead.normalizePhone(query);
         for (int i = 0; i < queue.size(); i++) {
             Lead l = queue.get(i);
+            // Campaign filter first: when one is picked, only that
+            // campaign's leads are shown (effective campaign, so a
+            // lead shifted to another campaign follows its new one).
+            if (campaignFilter != null && !campaignFilter.isEmpty()
+                    && !campaignFilter.equalsIgnoreCase(effectiveCampaign(l))) continue;
             if (q.isEmpty()) { shown.add(i); continue; }
             String biz = l.business == null ? "" : l.business.toLowerCase(Locale.US);
             String phone = l.phone == null ? "" : l.phone;
@@ -218,7 +277,7 @@ public class QueueActivity extends Activity {
 
     private void updateSortButton() {
         btnSort.setText(SORT_CAMPAIGN.equals(sortMode)
-                ? "Sort: Campaign" : "Sort: Dialer order");
+                ? "Sort: Campaign" : "Sort: Dialer");
     }
 
     private void updateTitle() {
@@ -226,8 +285,61 @@ public class QueueActivity extends Activity {
                 ? "Queue is empty."
                 : "Lead " + (currentIndex + 1) + " of " + queue.size()
                 + "  ·  " + queue.size() + " lead" + (queue.size() == 1 ? "" : "s");
-        tvTitle.setText(query.isEmpty() ? base
-                : base + "  ·  showing " + shown.size() + " matching “" + query + "”");
+        boolean filtered = !query.isEmpty()
+                || (campaignFilter != null && !campaignFilter.isEmpty());
+        if (!filtered) { tvTitle.setText(base); return; }
+        StringBuilder sb = new StringBuilder(base);
+        sb.append("  ·  showing ").append(shown.size());
+        if (campaignFilter != null && !campaignFilter.isEmpty())
+            sb.append(" in “").append(campaignFilter).append("”");
+        if (!query.isEmpty())
+            sb.append(" matching “").append(query).append("”");
+        tvTitle.setText(sb.toString());
+    }
+
+    /** Fetch the campaign list for the picker (GET /api/v1/campaigns)
+     *  and restore the saved selection. If the CRM cannot be reached
+     *  the picker falls back to the campaigns actually in the loaded
+     *  queue, and then to delivery/restaurant, so it is never empty.
+     *  The saved filter is applied by the selection event once the
+     *  real options exist. */
+    private void loadCampaignOptions() {
+        String base = prefs.getString("base_url", MainActivity.DEFAULT_BASE_URL);
+        String key = prefs.getString("api_key", "");
+        bg.execute(() -> {
+            List<String> names = new ArrayList<>();
+            if (base != null && !base.trim().isEmpty() && key != null && !key.isEmpty()) {
+                try {
+                    names.addAll(new CrmApi(base, key).listCampaigns());
+                } catch (Exception ignored) {}
+            }
+            if (names.isEmpty()) {
+                Set<String> seen = new HashSet<>();
+                for (Lead l : queue) {
+                    String c = effectiveCampaign(l);
+                    if (c != null && !c.isEmpty() && seen.add(c)) names.add(c);
+                }
+            }
+            if (names.isEmpty()) {
+                names.add("delivery");
+                names.add("restaurant");
+            }
+            Collections.sort(names, String.CASE_INSENSITIVE_ORDER);
+            final List<String> finalNames = names;
+            runOnUiThread(() -> {
+                campaignOptions.clear();
+                campaignOptions.add("All campaigns");
+                campaignOptions.addAll(finalNames);
+                campaignAdapter.notifyDataSetChanged();
+                int sel = 0;
+                if (campaignFilter != null && !campaignFilter.isEmpty()) {
+                    int idx = campaignOptions.indexOf(campaignFilter);
+                    if (idx >= 0) sel = idx;
+                }
+                campaignSpinnerReady = true;
+                spCampaign.setSelection(sel);
+            });
+        });
     }
 
     // ---------- Load more ----------
